@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	  <TargetFramework>netstandard2.0</TargetFramework>
+	  <PackageId>SharpCollect.CSharpCollections</PackageId>
+	  <Version>0.1.0</Version>
+	  <Title>C# Collections by SharpCollect</Title>
+	  <Authors>SharpCollect</Authors>
+	  <Company>Sharp Collect</Company>
+	  <Copyright>2022</Copyright>
+	  <PackageTags>Double Ended Queue; Collection</PackageTags>
+	  <Language></Language>
+	  <Description>
+		This library provides several implementations of collections, data structures, and algorithms
+		that are readily available in other languages and libraries.
+	  </Description>
+	  <RepositoryUrl>https://github.com/sharpcollect/CSharpCollections</RepositoryUrl>
+	  <PackageProjectUrl>https://github.com/sharpcollect/CSharpCollections</PackageProjectUrl>
+	  <RepositoryType>git</RepositoryType>
+	  <License>LICENSE</License>
+	  <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+	  <PackageReadmeFile>README.md</PackageReadmeFile>
+
+  </PropertyGroup>
+
+	  <ItemGroup>
+		  <PackageReference Include="NuGet.Build.Tasks.Pack" Version="5.2.0" />
+	  </ItemGroup>
+	
+	  <ItemGroup>
+	    <None Update="README.md">
+	      <Pack>True</Pack>
+	      <PackagePath>\</PackagePath>
+	    </None>
+	  </ItemGroup>
+</Project>
