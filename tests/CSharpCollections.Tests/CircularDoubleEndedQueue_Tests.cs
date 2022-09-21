@@ -1,9 +1,9 @@
 namespace CSharpCollections.Tests
 {
     /// <summary>
-    /// Tests for the DoubleEndedQueue
+    /// Tests for the CircularDoubleEndedQueue
     /// </summary>
-    public class DoubleEndedQueue_Tests
+    public class CircularDoubleEndedQueue_Tests
     {       
         /// <summary>
         /// Checks that the capacity is set in the constructor
@@ -12,7 +12,7 @@ namespace CSharpCollections.Tests
         public void ConstructorBody_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<int>()
+            var dequeue = new CircularDoubleEndedQueue<int>(32)
             {
                 // Act
                 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
@@ -31,6 +31,33 @@ namespace CSharpCollections.Tests
             }
         }
 
+
+        /// <summary>
+        /// Checks that the capacity is set in the constructor using an over-sized constructor body
+        /// </summary>
+        [Test]
+        public void ConstructorBody_Long_Test()
+        {
+            // Arrange
+            var dequeue = new CircularDoubleEndedQueue<int>()
+            {
+                // Act
+                0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35
+            };
+            // Assert
+            Assert.Multiple(() =>
+            {
+                Assert.That(dequeue.SyncRoot, Is.Not.Null); // The Sync Root should be available for thread-safety
+                Assert.That(dequeue.IsReadOnly, Is.False); // The queue can be edited
+                Assert.That(dequeue.IsSynchronized, Is.False); // This is not a thread-safe class
+                Assert.That(dequeue, Has.Count.EqualTo(32));
+            });
+            for (int i = 4; i < 36; i++)
+            {
+                Assert.That(dequeue.Dequeue(), Is.EqualTo(i));
+            }
+        }
+
         /// <summary>
         /// Checks that the capacity is set in the constructor
         /// </summary>
@@ -39,7 +66,7 @@ namespace CSharpCollections.Tests
         {
             // Arrange
             // Act
-            var dequeue = new DoubleEndedQueue<int>(64);
+            var dequeue = new CircularDoubleEndedQueue<int>(64);
             Assert.Multiple(() =>
             {
                 // Assert
@@ -62,10 +89,10 @@ namespace CSharpCollections.Tests
             // Act
             // Assert
             Assert.Throws<ArgumentOutOfRangeException>(() => {
-                _ = new DoubleEndedQueue<int>(2);
+                _ = new CircularDoubleEndedQueue<int>(2);
             });
             Assert.DoesNotThrow(() => {
-                _ = new DoubleEndedQueue<int>(3);
+                _ = new CircularDoubleEndedQueue<int>(3);
             });
         }
 
@@ -76,7 +103,7 @@ namespace CSharpCollections.Tests
         public void AdjustCapacity_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<int>(3);
+            var dequeue = new CircularDoubleEndedQueue<int>(3);
             // Act
             for (int i = 0; i < 32; i++)
             {
@@ -89,78 +116,7 @@ namespace CSharpCollections.Tests
                 Assert.That(dequeue.TryDequeue(out _), Is.True); // There should be no items
                 Assert.That(dequeue.TryDequeueBack(out _), Is.True); // There should be no items
                 Assert.That(dequeue, Is.Not.Empty); // There should be no items
-                Assert.That(dequeue.Capacity, Is.GreaterThan(32)); // The capacity should have additional room
-            });
-        }
-
-        /// <summary>
-        /// Checks that the capacity changes based on objects added
-        /// </summary>
-        [Test]
-        public void AdjustCapacity_ByShifting_Test()
-        {
-            // Arrange
-            var dequeue = new DoubleEndedQueue<int>(3);
-            // Act
-            for (int i = 0; i < 32; i++)
-            {
-                dequeue.Enqueue(i);
-                if (i% 2 == 0 || i % 3 == 0)
-                {
-                    _ = dequeue.Dequeue();
-                }
-            }
-
-
-            Assert.Multiple(() =>
-            {
-                // Assert
-                Assert.That(dequeue.TryDequeue(out _), Is.True); // There should be no items
-                Assert.That(dequeue.TryDequeueBack(out _), Is.True); // There should be no items
-                Assert.That(dequeue, Is.Not.Empty); // There should be no items
-                Assert.That(dequeue.Capacity, Is.LessThanOrEqualTo(32)); // The capacity should have additional room
-            });
-        }
-
-        /// <summary>
-        /// Checks that trimming excess removes extra elements
-        /// </summary>
-        [Test]
-        public void TrimExcess_Test()
-        {
-            // Arrange
-            var dequeue = new DoubleEndedQueue<int>(64);
-            // Act
-            for (int i = 0; i < 30; i++)
-            {
-                dequeue.Enqueue(i);
-            }
-            dequeue.TrimExcess();
-
-            Assert.Multiple(() =>
-            {
-                // Assert
-                Assert.That(dequeue.Count, Is.EqualTo(30)); // There should be 30 items
-                Assert.That(dequeue.Capacity, Is.EqualTo(32)); // The capacity should be 2 above the count
-            });
-        }
-
-        /// <summary>
-        /// Checks that trimming excess shrinks an empty queue to a capacity of 3
-        /// </summary>
-        [Test]
-        public void TrimExcess_Empty_Test()
-        {
-            // Arrange
-            var dequeue = new DoubleEndedQueue<int>(64);
-            // Act
-            dequeue.TrimExcess();
-
-            Assert.Multiple(() =>
-            {
-                // Assert
-                Assert.That(dequeue.Count, Is.EqualTo(0)); // There should be 0 items
-                Assert.That(dequeue.Capacity, Is.EqualTo(3)); // The capacity should be 3 above the count
+                Assert.That(dequeue.Capacity, Is.EqualTo(3)); // The capacity should never change
             });
         }
 
@@ -171,7 +127,7 @@ namespace CSharpCollections.Tests
         public void Enqueue_Dequeue_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<int>();
+            var dequeue = new CircularDoubleEndedQueue<int>(32);
 
             // Act
             for (int i = 0; i < 32; i++)
@@ -193,7 +149,7 @@ namespace CSharpCollections.Tests
         public void Enqueue_Index_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<int>();
+            var dequeue = new CircularDoubleEndedQueue<int>(32);
 
             // Act
             for (int i = 0; i < 32; i++)
@@ -215,7 +171,7 @@ namespace CSharpCollections.Tests
         public void Enqueue_DequeueBack_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<int>();
+            var dequeue = new CircularDoubleEndedQueue<int>(32);
 
             // Act
             for (int i = 0; i < 32; i++)
@@ -238,16 +194,16 @@ namespace CSharpCollections.Tests
         public void EnqueueFront_Dequeue_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<int>();
+            var dequeue = new CircularDoubleEndedQueue<int>(32);
 
             // Act
-            for (int i = 0; i < 32; i++)
+            for (int i = 64; i >=0; i--)
             {
                 dequeue.EnqueueFront(i);
             }
 
             // Assert
-            for (int i = 31; i >= 0; i--)
+            for (int i = 0; i < 32; i++)
             {
                 Assert.That(dequeue.Peek(), Is.EqualTo(i));
                 Assert.That(dequeue.Dequeue(), Is.EqualTo(i));
@@ -261,7 +217,7 @@ namespace CSharpCollections.Tests
         public void IndexFront_Dequeue_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<int>();
+            var dequeue = new CircularDoubleEndedQueue<int>(32);
 
             // Act
             for (int i = 0; i < 32; i++)
@@ -287,7 +243,7 @@ namespace CSharpCollections.Tests
         public void Index_Null_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<object>();
+            var dequeue = new CircularDoubleEndedQueue<object>(32);
 
             // Act
             for (int i = 0; i < 32; i++)
@@ -324,7 +280,7 @@ namespace CSharpCollections.Tests
         public void Index_Null_Removal_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<object>();
+            var dequeue = new CircularDoubleEndedQueue<object>(32);
 
             // Act
             for (int i = 0; i < 32; i++)
@@ -352,7 +308,7 @@ namespace CSharpCollections.Tests
         public void IndexBack_Dequeue_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<int>();
+            var dequeue = new CircularDoubleEndedQueue<int>(32);
 
             // Act
             for (int i = 0; i < 32; i++)
@@ -375,7 +331,7 @@ namespace CSharpCollections.Tests
         public void Index_Dequeue_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<int>();
+            var dequeue = new CircularDoubleEndedQueue<int>();
 
             // Act
             for (int i = 0; i < 32; i++)
@@ -398,7 +354,7 @@ namespace CSharpCollections.Tests
         public void Index_OutOfRange_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<int>();
+            var dequeue = new CircularDoubleEndedQueue<int>();
 
 
             // Assert
@@ -431,7 +387,7 @@ namespace CSharpCollections.Tests
         public void EnqueueFront_DequeueBack_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<int>();
+            var dequeue = new CircularDoubleEndedQueue<int>();
 
             // Act
             for (int i = 0; i < 32; i++)
@@ -454,7 +410,7 @@ namespace CSharpCollections.Tests
         public void Clear_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<int>();
+            var dequeue = new CircularDoubleEndedQueue<int>();
 
             // Act
             for (int i = 0; i < 32; i++)
@@ -474,7 +430,7 @@ namespace CSharpCollections.Tests
         public void Contains_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<int>()
+            var dequeue = new CircularDoubleEndedQueue<int>(32)
             {
                 // Act
                 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
@@ -500,7 +456,7 @@ namespace CSharpCollections.Tests
         public void ContainsEnumerable_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<int>()
+            var dequeue = new CircularDoubleEndedQueue<int>()
             {
                 // Act
                 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
@@ -520,7 +476,7 @@ namespace CSharpCollections.Tests
         public void IndexOf_Enqueue_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<int>();
+            var dequeue = new CircularDoubleEndedQueue<int>();
 
             // Act
             for (int i = 0; i < 32; i++)
@@ -544,7 +500,7 @@ namespace CSharpCollections.Tests
         public void CopyTo_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<int>();
+            var dequeue = new CircularDoubleEndedQueue<int>();
             var target = new int[64];
             var target2 = new int[64];
 
@@ -584,7 +540,7 @@ namespace CSharpCollections.Tests
         public void ToArray_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<int>();
+            var dequeue = new CircularDoubleEndedQueue<int>();
             var newArray = dequeue.ToArray();
             Assert.That(newArray, Is.Empty);
 
@@ -604,6 +560,41 @@ namespace CSharpCollections.Tests
             }
         }
 
+        /// <summary>
+        /// Checks that ToArray works correctly when queue has circled
+        /// </summary>
+        [Test]
+        public void ToArray_Wrapped_Test()
+        {
+            // Arrange
+            var dequeue = new CircularDoubleEndedQueue<int>(32);
+            var newArray = dequeue.ToArray();
+            Assert.That(newArray, Is.Empty);
+
+            // Act
+            for (int i = 0; i < 48; i++)
+            {
+                dequeue.Enqueue(i);
+                if (i < 32)
+                {
+                    Assert.That(dequeue.ToArray().Count, Is.EqualTo(i+1));
+                }
+                else
+                {
+                    Assert.That(dequeue.ToArray().Count, Is.EqualTo(32));
+                }
+            }
+
+            newArray = dequeue.ToArray();
+
+            // Assert
+            for (int i = 0; i < 32; i++)
+            {
+                // The array should be copied exactly
+                Assert.That(newArray[i], Is.EqualTo(i+16));
+            }
+        }
+
 
 
         /// <summary>
@@ -613,12 +604,16 @@ namespace CSharpCollections.Tests
         public void Insert_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<int>();
+            var dequeue = new CircularDoubleEndedQueue<int>(32);
 
             // Act
-            for (int i = 0; i < 32; i++)
+            for (int i = 0; i < 16; i++)
             {
                 dequeue.Insert(i,i);
+            }
+            for (int i = 0; i < 32; i++)
+            {
+                dequeue.Insert(i, i);
             }
             for (int i = 0; i < 16; i++)
             {
@@ -633,22 +628,17 @@ namespace CSharpCollections.Tests
                 dequeue.Insert(-1, 65); // Also check negative indexes that are too small
             });
 
-            for (int i = 0; i < 48; i++)
+            for (int i = 0; i < 32; i++)
             {
                 if (i < 16)
                 {
                     // The array should be copied exactly
                     Assert.That(dequeue[i], Is.EqualTo(i));
                 }
-                else if (i < 32)
-                {
-                    // The array should be copied exactly
-                    Assert.That(dequeue[i], Is.EqualTo(64));
-                }
                 else
                 {
                     // The array should be copied exactly
-                    Assert.That(dequeue[i], Is.EqualTo(i-16));
+                    Assert.That(dequeue[i], Is.EqualTo(64));
                 }
             }
         }
@@ -660,7 +650,7 @@ namespace CSharpCollections.Tests
         public void Insert_Null_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<object>();
+            var dequeue = new CircularDoubleEndedQueue<object>();
 
             // Act
             for (int i = 0; i < 32; i++)
@@ -685,7 +675,7 @@ namespace CSharpCollections.Tests
         public void Remove_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<object>();
+            var dequeue = new CircularDoubleEndedQueue<object>();
 
             // Act
             for (int i = 0; i < 32; i++)
@@ -717,7 +707,7 @@ namespace CSharpCollections.Tests
         public void RemoveAt_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<object>();
+            var dequeue = new CircularDoubleEndedQueue<object>();
             Assert.DoesNotThrow(() => {
                 // Removing what isn't there raises no exception because it's technically gone already
                 dequeue.RemoveAt(0); 
@@ -762,16 +752,48 @@ namespace CSharpCollections.Tests
         }
 
         /// <summary>
+        /// Checks that RemoveAt wraps successfully
+        /// </summary>
+        [Test]
+        public void Enqueue_and_RemoveAt_Test()
+        {
+            // Arrange
+            var dequeue = new CircularDoubleEndedQueue<object>(32);
+
+            // Act
+            for (int i = -16; i< 32; i++)
+            {
+                dequeue.Enqueue(i);
+            }
+            Assert.That(dequeue, Has.Count.EqualTo(32)); // only 32 items remain
+            for (int i = -16; i < 32; i++)
+            {
+                dequeue.RemoveAt(i);
+            }
+
+            // Assert
+            Assert.That(dequeue, Has.Count.EqualTo(16)); // only half the queue remains
+            for (int i = 0; i < 16; i++)
+            {
+                Assert.That(dequeue[i], Is.EqualTo(1 + 2 * i)); // There should only be 1, 3, 5, etc...
+            }
+        }
+
+        /// <summary>
         /// Checks that the enumerator works
         /// </summary>
         [Test]
         public void Enumerator_Test()
         {
             // Arrange
-            var dequeue = new DoubleEndedQueue<int>();
+            var dequeue = new CircularDoubleEndedQueue<int>();
 
             // Act
-            for (int i = 0; i < 32; i++)
+            for (int i = 15; i >= 0; i--)
+            {
+                dequeue.EnqueueFront(i);
+            }
+            for (int i = 16; i < 32; i++)
             {
                 dequeue.Enqueue(i);
             }

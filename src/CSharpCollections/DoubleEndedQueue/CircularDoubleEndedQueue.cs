@@ -4,18 +4,18 @@ namespace System.Collections.SharpCollect
 {
     /// <summary>
     /// A Double Ended Queue allows for Enqueue-ing and Dequeue-ing from the front and back
+    /// but always keeps the same capacity
     /// </summary>
     /// <typeparam name="T">The type of object stored in the queue</typeparam>
-    public partial class DoubleEndedQueue<T> : IDoubleEndedQueue<T>, ICollection
+    public class CircularDoubleEndedQueue<T> : IDoubleEndedQueue<T>, ICollection
     {
         // The items begin stored
         private T[] _items;
         // The position of the next item to be popped
-        private int _indexFront;
+        private int _indexFront = 0;
         // The position of the next item to be pushed
-        private int _indexBack;
-        // The original size of the items
-        private readonly int _initialCapacity;
+        private int _indexBack = 0;
+
         // Locking for multi-threaded operations
         private object _syncRoot;
 
@@ -24,11 +24,10 @@ namespace System.Collections.SharpCollect
         /// </summary>
         /// <param name="capacity">The number of items before the queue attempts to grow</param>
         /// <exception cref="ArgumentException">Thrown if the specified capacity is invalid</exception>
-        public DoubleEndedQueue(int capacity) 
+        public CircularDoubleEndedQueue(int capacity) 
         {
             if (capacity < 3) { throw new ArgumentOutOfRangeException(nameof(capacity),"Initial capacity must be greater than 2", nameof(capacity)); }
-            _initialCapacity = capacity;
-            Clear();
+            _items = new T[capacity];
         }
 
         /// <summary>
@@ -37,7 +36,7 @@ namespace System.Collections.SharpCollect
         /// <remarks>
         /// The default size is 32
         /// </remarks>
-        public DoubleEndedQueue() : this(32) { }
+        public CircularDoubleEndedQueue() : this(32) { }
 
         /// <summary>
         /// The number of items in the queue
@@ -47,7 +46,7 @@ namespace System.Collections.SharpCollect
         /// <summary>
         /// The number of items in the queue
         /// </summary>
-        public int Count => _indexBack - _indexFront;
+        public int Count { get; private set; } = 0;
 
         /// <summary>
         /// Is this Collection synchronized (thread-safe)?
@@ -76,38 +75,25 @@ namespace System.Collections.SharpCollect
 
 
         /// <summary>
-        /// Grows or shifts the underlying array to accommodate more items
-        /// </summary>
-        private void AdjustCapacity()
-        {
-            var prevCount = Count;
-            if (prevCount < _items.Length / 2)
-            {
-                // Shift the data to make better use of the space
-                Array.Copy(_items, _indexFront, _items, _items.Length / 4, prevCount);
-                _indexFront = _items.Length / 4;
-                _indexBack = _indexFront + prevCount;
-                return;
-            }
-            // Double the capacity
-            var newItems = new T[_items.Length * 2];
-            Array.Copy(_items, _indexFront, newItems, _items.Length / 2, prevCount);
-            _indexFront = _items.Length / 2;
-            _indexBack = _indexFront + prevCount;
-            _items = newItems;
-        }
-
-        /// <summary>
         /// Adds obj to the back/tail/right of the queue
         /// </summary>
         /// <param name="obj">The object to add</param>
         public void Enqueue(T obj)
         {
             _items[_indexBack++] = obj;
-            if (_indexBack >= _items.Length)
+            if (_indexBack == _items.Length)
             {
-                AdjustCapacity();
+                _indexBack = 0; // This is the next position the back will be added
             }
+            // See if it is fully populated
+            if (Count == _items.Length)
+            {
+                // Shift the front as well
+                _indexFront = _indexBack;
+                return;
+            }
+            // If not, increment normally
+            Count++;
         }
 
         /// <summary>
@@ -116,11 +102,21 @@ namespace System.Collections.SharpCollect
         /// <param name="obj">The object to add</param>
         public void EnqueueFront(T obj)
         {
-            _items[--_indexFront] = obj;
-            if (_indexFront <= 0)
+            _indexFront--;
+            if (_indexFront < 0)
             {
-                AdjustCapacity();
+                _indexFront = _items.Length - 1;
             }
+            _items[_indexFront] = obj;
+            // See if it is fully populated
+            if (Count == _items.Length)
+            {
+                // Shift the back as well
+                _indexBack = _indexFront;
+                return;
+            }
+            // If not, increment normally
+            Count++;
         }
 
         /// <summary>
@@ -131,10 +127,15 @@ namespace System.Collections.SharpCollect
         /// <returns>An object or default</returns>
         public bool TryDequeue(out T obj)
         {
-            if (_indexFront < _indexBack)
+            if (Count > 0)
             {
                 obj = _items[_indexFront];
                 _items[_indexFront++] = default;
+                if (_indexFront == _items.Length)
+                {
+                    _indexFront = 0;
+                }
+                Count--;
                 return true;
             }
             obj = default;
@@ -161,10 +162,16 @@ namespace System.Collections.SharpCollect
         /// <returns>True if an object returned</returns>
         public bool TryDequeueBack(out T obj)
         {
-            if (_indexBack > _indexFront)
+            if (Count > 0)
             {
-                obj = _items[_indexBack-1];
-                _items[--_indexBack] = default;
+                _indexBack--;
+                if (_indexBack < 0)
+                {
+                    _indexBack = _items.Length - 1;
+                }
+                obj = _items[_indexBack];
+                _items[_indexBack] = default;
+                Count--;
                 return true;
             }
             obj = default;
@@ -189,7 +196,7 @@ namespace System.Collections.SharpCollect
         /// <returns>The item or default</returns>
         public T Peek()
         {
-            if (_indexBack == _indexFront)
+            if (Count < 1)
             {
                 return default;
             }
@@ -202,11 +209,11 @@ namespace System.Collections.SharpCollect
         /// <returns>The item or default</returns>
         public T PeekBack()
         {
-            if (_indexBack == _indexFront)
+            if (Count < 1)
             {
                 return default;
             }
-            return _items[_indexBack - 1];
+            return _items[_indexBack - 1 >= 0 ? _indexBack - 1 : _items.Length - 1];
         }
 
         /// <summary>
@@ -241,7 +248,7 @@ namespace System.Collections.SharpCollect
                     RemoveAt(index);
                     return;
                 }
-                _items[_indexFront + index] = value;
+                _items[(_indexFront + index) % _items.Length] = value;
             }
             get
             {
@@ -250,7 +257,7 @@ namespace System.Collections.SharpCollect
                     throw new IndexOutOfRangeException();
                 }
 
-                return _items[_indexFront + index];
+                return _items[(_indexFront + index) % _items.Length];
             }
         }
 
@@ -259,9 +266,10 @@ namespace System.Collections.SharpCollect
         /// </summary>
         public void Clear()
         {
-            _items = new T[_initialCapacity];
-            _indexFront = _initialCapacity / 2;
+            _items = new T[_items.Length];
+            _indexFront = 0;
             _indexBack = _indexFront;
+            Count = 0;
         }
 
         /// <summary>
@@ -283,7 +291,17 @@ namespace System.Collections.SharpCollect
         /// <returns>The item enumerator</returns>
         public IEnumerator<T> GetEnumerator()
         {
-            for (int i = _indexFront; i < _indexBack; i++) yield return _items[i];
+            var count = Count;
+            var index = _indexFront;
+            while (count > 0)
+            {
+                if (index >= _items.Length)
+                {
+                    index = 0;
+                }
+                count--;
+                yield return _items[index++];
+            }
         }
 
         /// <summary>
@@ -320,7 +338,17 @@ namespace System.Collections.SharpCollect
                 }
                 if (count > 0)
                 {
-                    Array.Copy(_items, _indexFront, array, index, count);
+                    var toCopy = count;
+                    if (toCopy > _items.Length - _indexFront)
+                    {
+                        toCopy = _items.Length - _indexFront;
+                    }
+                    Array.Copy(_items, _indexFront, array, index, toCopy);
+                    count -= toCopy;
+                    if (count > 0)
+                    {
+                        Array.Copy(_items, 0, array, index + toCopy, count);
+                    }
                 }
             }
         }
@@ -342,42 +370,15 @@ namespace System.Collections.SharpCollect
         /// <returns>A new object array</returns>
         public T[] ToArray()
         {
-            var count = Count;
-            if (count < 1)
+            if (Count < 1)
             {
                 return Array.Empty<T>();
             }
-            T[] array = new T[count];
-            if (count > 0)
-            {
-                Array.Copy(_items, _indexFront, array, 0, count);
-            }
+            T[] array = new T[Count];
+            this.CopyTo(array, 0);
             return array;
         }
 
-        /// <summary>
-        /// Shrinks the underlying structure such that there is only on space available
-        /// in the front or back of the array.
-        /// </summary>
-        public void TrimExcess()
-        {
-            var count = Count;
-
-            if (count > 0)
-            {
-                T[] array = new T[count + 2];
-                Array.Copy(_items, _indexFront, array, 1, count);
-                _items = array;
-                _indexFront = 1;
-                _indexBack = _indexFront + count;
-            }
-            else
-            {
-                _items = new T[3];
-                _indexFront = 1;
-                _indexBack = _indexFront;
-            }
-        }
 
         /// <summary>
         /// Gets the index of an item (-1 for not found)
@@ -388,11 +389,11 @@ namespace System.Collections.SharpCollect
         public int IndexOf(T item)
         {
             var comparer = EqualityComparer<T>.Default;
-            for (int i = _indexFront; i < _indexBack; i++)
+            for (int i = 0; i < Count; i++)
             {
-                if (comparer.Equals(_items[i], item))
+                if (comparer.Equals(_items[(_indexFront + i) % _items.Length], item))
                 {
-                    return i - _indexFront;
+                    return i;
                 }
             }
             return -1;
@@ -407,7 +408,7 @@ namespace System.Collections.SharpCollect
         public void Insert(int index, T item)
         {
             if (item == null) { return; }
-            if (index < 0 || (index > Count && Count > 0)) 
+            if (index < 0 || index > Count) 
             {
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
@@ -421,12 +422,19 @@ namespace System.Collections.SharpCollect
                 Enqueue(item);
                 return;
             }
-            Array.Copy(_items, _indexFront + index, _items, _indexFront + index + 1, Count - index);
-            _indexBack++;
-            _items[_indexFront + index] = item;
-            if (_indexBack >= _items.Length)
+
+            var startIndex = (_indexFront + index) % _items.Length;
+            var moveSize = Count - index - 1;
+            while (moveSize> 0)
             {
-                AdjustCapacity();
+                moveSize--;
+                _items[(startIndex + moveSize+1) % _items.Length] = _items[(startIndex + moveSize) % _items.Length];
+            }
+            _items[startIndex] = item;
+            if (Count < _items.Length)
+            {
+                Count++;
+                _indexBack = (_indexBack + 1) % _items.Length;
             }
         }
 
@@ -436,23 +444,44 @@ namespace System.Collections.SharpCollect
         /// <param name="index">The index of the item to remove</param>
         public void RemoveAt(int index)
         {
-            if (_indexFront == _indexBack || index < 0 || index >= Count)
+            if (index < 0 || index >= Count || Count < 1)
             {
                 // Nothing to do
                 return;
             }
             if (index == 0)
             {
-                _items[_indexFront++] = default;
+                _items[_indexFront] = default;
+                _indexFront = (_indexFront + 1) % _items.Length;
+                Count--;
                 return;
             }
             if (index == Count - 1)
             {
-                _items[--_indexBack] = default;
+                _indexBack--;
+                if (_indexBack < 0)
+                {
+                    _indexBack = _items.Length - 1;
+                }
+                _items[_indexBack] = default;
+                Count--;
                 return;
             }
-            Array.Copy(_items, _indexFront+index + 1, _items, _indexFront+index, _indexBack - index);
-            _items[--_indexBack] = default;
+            var startIndex = (_indexFront + index) % _items.Length;
+            var moveSize = Count - index;
+            var currentIndex = startIndex;
+            while (moveSize > 0)
+            {
+                _items[currentIndex] = _items[(currentIndex + 1) % _items.Length];
+                moveSize--;
+                currentIndex++;
+                if (currentIndex >= _items.Length)
+                {
+                    currentIndex = 0;
+                }
+            }
+            _items[currentIndex] = default;
+            Count--;
         }
 
         /// <summary>
