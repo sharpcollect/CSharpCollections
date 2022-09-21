@@ -36,7 +36,7 @@ For big data problems, recursion can lead to stack overflow where using a queue 
 
 The [`CircularDoubleEndedQueue`](CircularDoubleEndedQueue.cs) is just like a [`DoubleEndedQueue`](DoubleEndedQueue.cs), but its capacity will never grow or change in size. The [Test Cases](../../../tests/CSharpCollections.Tests/CircularDoubleEndedQueue_Tests.cs) contain several examples of working with [`CircularDoubleEndedQueue`](CircularDoubleEndedQueue.cs).
 
-A possible use case for this might be an undo-redo stack or a video player that allows for quick rewind of N number of frames.
+A possible use case for this might be an undo-redo stack or a video player that allows for quick rewind of N number of frames. This structure is write optimized - so it can be used like a circular buffer.
 
 ### Note: 
 
