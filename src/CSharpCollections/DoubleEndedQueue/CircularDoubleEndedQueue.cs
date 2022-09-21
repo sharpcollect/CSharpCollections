@@ -80,8 +80,8 @@ namespace System.Collections.SharpCollect
         /// <param name="obj">The object to add</param>
         public void Enqueue(T obj)
         {
-            _items[_indexBack++] = obj; 
-            // _indexBack is always within the space of _items so this call is safe
+            _items[_indexBack++ % _items.Length] = obj; 
+            // _indexBack is always within the space of _items so _items[_indexBack++] should be safe
             // _indexBack++ returns the value of _indexBack before incrementing it
             // before the next check, which brings it back in bounds
             
