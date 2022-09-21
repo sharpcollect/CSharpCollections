@@ -11,6 +11,7 @@ namespace CSharpCollections.Tests
     /// </summary>
     public class DoubleEndedQueue_Examples
     {
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         // A generic node class
         public class Node<T>
         {
@@ -30,6 +31,7 @@ namespace CSharpCollections.Tests
                 if (Right != null) yield return Right;
             }
         }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         // A typesafe node
         public class DN : Node<double> { }
@@ -92,7 +94,7 @@ namespace CSharpCollections.Tests
                 {
                     if (exitCondition(current.node)) { return current.depth; }
                     foreach (DN next in current.node.GetNext()
-                        .Where(obj => !seen.Contains(obj)))
+                        .Where(obj => !seen.Contains(obj)).OfType<DN>())
                     {
                         seen.Add(next);
                         queue.Enqueue((next, current.depth + 1));

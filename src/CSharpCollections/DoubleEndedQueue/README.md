@@ -24,7 +24,7 @@ while (queue.TryDequeue(out (DN node, int depth) current))
 {
     if (exitCondition(current.node)) { return current.depth; }
     foreach (DN next in current.node.GetNext()
-        .Where(obj => !seen.Contains(obj)))
+        .Where(obj => !seen.Contains(obj)).OfType<DN>())
     {
         seen.Add(next);
         queue.Enqueue((next, current.depth + 1));
