@@ -24,9 +24,9 @@ namespace System.Collections.SharpCollect
         /// </summary>
         /// <param name="capacity">The number of items before the queue attempts to grow</param>
         /// <exception cref="ArgumentException">Thrown if the specified capacity is invalid</exception>
-        public DoubleEndedQueue(int capacity) 
+        public DoubleEndedQueue(int capacity)
         {
-            if (capacity < 3) { throw new ArgumentOutOfRangeException(nameof(capacity),"Initial capacity must be greater than 2", nameof(capacity)); }
+            if (capacity < 3) { throw new ArgumentOutOfRangeException(nameof(capacity), "Initial capacity must be greater than 2", nameof(capacity)); }
             _initialCapacity = capacity;
             Clear();
         }
@@ -163,7 +163,7 @@ namespace System.Collections.SharpCollect
         {
             if (_indexBack > _indexFront)
             {
-                obj = _items[_indexBack-1];
+                obj = _items[_indexBack - 1];
                 _items[--_indexBack] = default;
                 return true;
             }
@@ -407,7 +407,7 @@ namespace System.Collections.SharpCollect
         public void Insert(int index, T item)
         {
             if (item == null) { return; }
-            if (index < 0 || (index > Count && Count > 0)) 
+            if (index < 0 || (index > Count && Count > 0))
             {
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
@@ -451,7 +451,7 @@ namespace System.Collections.SharpCollect
                 _items[--_indexBack] = default;
                 return;
             }
-            Array.Copy(_items, _indexFront+index + 1, _items, _indexFront+index, _indexBack - index);
+            Array.Copy(_items, _indexFront + index + 1, _items, _indexFront + index, _indexBack - index);
             _items[--_indexBack] = default;
         }
 

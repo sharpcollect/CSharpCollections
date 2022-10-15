@@ -24,9 +24,9 @@ namespace System.Collections.SharpCollect
         /// </summary>
         /// <param name="capacity">The number of items before the queue attempts to grow</param>
         /// <exception cref="ArgumentException">Thrown if the specified capacity is invalid</exception>
-        public CircularDoubleEndedQueue(int capacity) 
+        public CircularDoubleEndedQueue(int capacity)
         {
-            if (capacity < 3) { throw new ArgumentOutOfRangeException(nameof(capacity),"Initial capacity must be greater than 2", nameof(capacity)); }
+            if (capacity < 3) { throw new ArgumentOutOfRangeException(nameof(capacity), "Initial capacity must be greater than 2", nameof(capacity)); }
             _items = new T[capacity];
         }
 
@@ -80,11 +80,11 @@ namespace System.Collections.SharpCollect
         /// <param name="obj">The object to add</param>
         public void Enqueue(T obj)
         {
-            _items[_indexBack++ % _items.Length] = obj; 
+            _items[_indexBack++ % _items.Length] = obj;
             // _indexBack is always within the space of _items so _items[_indexBack++] should be safe
             // _indexBack++ returns the value of _indexBack before incrementing it
             // before the next check, which brings it back in bounds
-            
+
             if (_indexBack == _items.Length)
             {
                 _indexBack = 0; // This is the next position the back will be added
@@ -412,7 +412,7 @@ namespace System.Collections.SharpCollect
         public void Insert(int index, T item)
         {
             if (item == null) { return; }
-            if (index < 0 || index > Count) 
+            if (index < 0 || index > Count)
             {
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
@@ -429,10 +429,10 @@ namespace System.Collections.SharpCollect
 
             var startIndex = (_indexFront + index) % _items.Length;
             var moveSize = Count - index - 1;
-            while (moveSize> 0)
+            while (moveSize > 0)
             {
                 moveSize--;
-                _items[(startIndex + moveSize+1) % _items.Length] = _items[(startIndex + moveSize) % _items.Length];
+                _items[(startIndex + moveSize + 1) % _items.Length] = _items[(startIndex + moveSize) % _items.Length];
             }
             _items[startIndex] = item;
             if (Count < _items.Length)
